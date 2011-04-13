@@ -1,4 +1,4 @@
-A fork of [https://github.com/chrispix/symbolicatecrash-fix] 
+A fork of [https://github.com/chrispix/symbolicatecrash-fix](https://github.com/chrispix/symbolicatecrash-fix)
 
 iOS crash report symbolication is broken in XCode 4 with archived builds. Read more at [http://factotum.me/blog/2011/04/cant-symbolicate-xcode4-archive-builds/](http://factotum.me/blog/2011/04/cant-symbolicate-xcode4-archive-builds/)
 
