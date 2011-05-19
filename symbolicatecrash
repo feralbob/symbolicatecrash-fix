@@ -207,10 +207,10 @@ sub getSymbolPathFor_dsymUuid{
     # Do the search in Spotlight.
     my $cmd = "mdfind \"com_apple_xcode_dsym_uuids == $myuuid\"";
     print STDERR "Running $cmd\n" if $opt{v};
-    my $dsymdir = `$cmd`;
-    chomp $dsymdir;
-    $dsymdir or return undef;
-    $dsymdir = quotemeta($dsymdir);	# quote the result to handle spaces in path and executable names
+    my $orig_dsymdir = `$cmd`;
+    chomp $orig_dsymdir;
+    $orig_dsymdir or return undef;
+    my $dsymdir = quotemeta($orig_dsymdir);	# quote the result to handle spaces in path and executable names
     print STDERR "dsym directory: $dsymdir\n" if $opt{v};
     
     my $pathToDsym;
