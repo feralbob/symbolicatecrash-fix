@@ -66,19 +66,24 @@ my $otool = `xcrun -sdk iphoneos -find otool`;
 chomp($otool);
 my $atos = `xcrun -sdk iphoneos -find atos`;
 chomp($atos);
+my $dwarfdump = `xcrun -sdk iphoneos -find dwarfdump`;
+chomp($dwarfdump);
 
 if ( ! -f $otool ) {
     # if that doesn't exist, then assume the PDK was installed
     $otool = "/usr/bin/otool";
     $atos = "/usr/bin/atos";
+	$dwarfdump = '/usr/bin/dwarfdump';
 }
 print STDERR "otool path is '$otool'\n" if $opt{v};
 print STDERR "atos path is '$atos'\n" if $opt{v};
+print STDERR "dwarfdump path is '$dwarfdump'\n" if $opt{v};
 
 # quotemeta makes the paths such that -f can't be used
 $devToolsPath = quotemeta($devToolsPath);
 $otool = quotemeta($otool);
 $atos = quotemeta($atos);
+$dwarfdump = quotemeta($dwarfdump);
 
 
 #############################
