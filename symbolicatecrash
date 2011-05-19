@@ -297,8 +297,8 @@ sub getSymbolPathFor_dsymUuid{
 		}
     }
 	
-    print STDERR "Did not find executable for dsym\n" if $opt{v};
-    return undef;
+    print STDERR "Did not find executable for dsym, use assiociated dSYM instead\n" if $opt{v};
+    return $orig_dsymdir;
 }
 
 #########
@@ -884,40 +884,67 @@ sub symbolize_frames {
     
     # run atos for each library
     while(my($symbol,$frames) = each(%frames_to_lookup)) {
+		my $isDSYM = 0;
+	    if ($symbol =~ /.*\.dSYM$/) {
+			$isDSYM = 1;
+		}
+
         # escape the symbol path if it contains single quotes
         my $escapedSymbol = $symbol;
         $escapedSymbol =~ s/\'/\'\\'\'/g;
         
-        # run atos with the addresses and binary files we just gathered
+        # run address resolver with the addresses and binary files we just gathered
         my $arch = $arch_map{$symbol};
-        my $cmd = "$atos -arch $arch -o '$escapedSymbol' @{[ keys %$frames ]} | ";
+
+		my $cmd = '';
+		if ($isDSYM == 0) {
+        	$cmd = "$atos -arch $arch -o '$escapedSymbol' @{[ keys %$frames ]} | ";
         
-        print STDERR "Running $cmd\n" if $opt{v};
+	        print STDERR "Running $cmd\n" if $opt{v};
         
-        open my($ph),$cmd or die $!;
-        my @symbolled_frames = map { chomp; $_ } <$ph>;
-        close $ph or die $!;
+	        open my($ph),$cmd or die $!;
+	        my @symbolled_frames = map { chomp; $_ } <$ph>;
+	        close $ph or die $!;
         
-        my $references = 0;
+	        my $references = 0;
         
-        foreach my $symbolled_frame (@symbolled_frames) {
+	        foreach my $symbolled_frame (@symbolled_frames) {
             
-            $symbolled_frame =~ s/\s*\(in .*?\)//; # clean up -- don't need to repeat the lib here
+	            $symbolled_frame =~ s/\s*\(in .*?\)//; # clean up -- don't need to repeat the lib here
 			
-			# find the correct frame -- the order should match since we got the address list with keys
-            my ($k,$frame) = each(%$frames);
+				# find the correct frame -- the order should match since we got the address list with keys
+	            my ($k,$frame) = each(%$frames);
 			
-			if ( $symbolled_frame !~ /^\d/ ) {
-				# only symbolicate if we fetched something other than an address
-				$$frame{symbolled} = $symbolled_frame;
-                $references++;
-            }
+				if ( $symbolled_frame !~ /^\d/ ) {
+					# only symbolicate if we fetched something other than an address
+					$$frame{symbolled} = $symbolled_frame;
+	                $references++;
+	            }
             
-        }
+	        }
         
-        if ( $references == 0 ) {
-            print STDERR "## Warning: Unable to symbolicate from required binary: $symbol\n";
-        }
+	        if ( $references == 0 ) {
+	            print STDERR "## Warning: Unable to symbolicate from required binary: $symbol\n";
+	        }
+		}
+		else {
+			foreach my $lookup (keys %$frames) {
+				$cmd = "$dwarfdump --arch $arch --lookup $lookup '$escapedSymbol' |";
+				print STDERR "Running $cmd\n" if $opt{v};
+
+				open my($ph),$cmd or die $!;
+		        my @dwarfdump_output = <$ph>;
+		        close $ph or die $!;
+
+				my ($method, $file, $line) = parseDWARFDumpOutput(@dwarfdump_output);
+				# find the correct frame -- the order should match since we got the address list with keys
+	            my ($k,$frame) = each(%$frames);
+
+				if (defined($method) && defined($line) && defined($file)) {
+					$$frame{symbolled} = "$method ($file:$line)";
+				}
+			}
+		}
     }
     
     # just run through and remove elements for which we didn't find a
