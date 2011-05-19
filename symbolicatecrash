@@ -245,7 +245,7 @@ sub getSymbolPathFor_dsymUuid{
     my @executablePath = grep { -x && ! -d } glob "$pathToDsym/$dsymBaseName/{,$executable,Contents/MacOS/$executable}";
 	
 	# Fix for <rdar://problem/6871493>, we shouldn't really need the executable name as we are using the uuid's, but as this has been working this way for some time now, we are continuing...
-	my @spotLightSearchForExecutable = `mdfind $executable.app`; # To cover the case where the DSYM's and .app are no located in the same location.
+	my @spotLightSearchForExecutable = `mdfind -onlyin / \'(kMDItemFSName == \"$executable.app\")\'`; # To cover the case where the DSYM's and .app are no located in the same location.
 	print STDERR "spotLightSearchForExecutable: @spotLightSearchForExecutable\n\n" if $opt{v};
 	print STDERR "Executable: $executable\n\n" if $opt{v};
 	foreach (@spotLightSearchForExecutable) {
