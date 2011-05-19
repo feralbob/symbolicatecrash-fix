@@ -186,6 +186,7 @@ sub getSymbolPathFor_uuid{
     return Cwd::realpath("$uuidsPath/$1/$2/$3/$4/$5/$6/$7");
 }
 
+
 # Look up a dsym file by UUID in Spotlight, then find the executable from the dsym.
 sub getSymbolPathFor_dsymUuid{
     my ($uuid,$arch) = @_;
@@ -631,6 +632,48 @@ sub parse_backtrace {
     }
     
     return \%frames;
+}
+
+# Parses output of dwarfdump returned by invoking lookup by crash address
+# Returns method, source file name and line assosiated with crash
+sub parseDWARFDumpOutput {
+	my (@dwarfdump_output) = @_;
+
+	my $tag_compile_unit = 0;
+	my $tag_subprogram = 0;
+
+	my ($source_file_path, $source_file_name, $source_file_line_number, $source_file_method_name);
+
+	foreach my $dwarfdump_output_line (@dwarfdump_output) {
+		if ($dwarfdump_output_line =~ /TAG_compile_unit/) {
+			$tag_compile_unit = 1;
+			$tag_subprogram = 0;
+		}
+		elsif ($dwarfdump_output_line =~ /TAG_subprogram/) {
+			$tag_compile_unit = 0;
+			$tag_subprogram = 1;
+		}
+		elsif ($dwarfdump_output_line =~ /AT_name/) {
+			$dwarfdump_output_line =~ /AT_name\( \"(.+)\" \)/;
+			my $name = $1;
+			if ($tag_compile_unit) {
+				$source_file_path = $name;
+			}
+			elsif ($tag_subprogram) {
+				$source_file_method_name = $name;
+			}
+		}
+		elsif ($dwarfdump_output_line =~ /Line table file/) {
+			$dwarfdump_output_line =~ /line (\d+),/;
+			$source_file_line_number = $1;
+		}
+	}
+
+	if (defined($source_file_path)) {
+		$source_file_name = basename($source_file_path);
+	}
+
+	return ($source_file_method_name, $source_file_name, $source_file_line_number);
 }
 
 sub slurp_file {
