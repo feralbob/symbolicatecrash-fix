@@ -335,6 +335,15 @@ sub matchesUUID
 			print STDERR "Given UUID $uuid for '$path' is really UUID $test\n" if $opt{v};
 		}
     } else {
+		# symbolicatecrash can't understand output from otool in at least one case: $path points to binary
+		# with different architecture from $arch (e.g. $path points to iOS Simulator build of our crashed program
+		# but we're querying $arch instead of i386 or x86_64). $path might point to different architecture binary
+		# because we use mdfind in such a way that doesn't restrict architecture type to $arch.
+		# If you know how to invoke mdfind to find all the files of our crashed program of given type then
+		# let me know by filing issue or just message me via github
+		#
+		# At this moment it is fairly to consider that if we don't understand output from otool then
+		# $path doesn't match $uuid
 		# die "Can't understand the output from otool ($TEST_uuid -> '$otool -arch $arch -l $path')";
 	}
 
